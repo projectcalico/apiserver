@@ -2,10 +2,12 @@ version: v1.0
 name: API Server
 execution_time_limit:
   minutes: 30
+
 agent:
   machine:
     type: e1-standard-2
     os_image: ubuntu1804
+
 auto_cancel:
   running:
     when: "branch != 'master'"
@@ -15,18 +17,11 @@ auto_cancel:
 global_job_config:
   secrets:
     - name: docker-hub
-    # Mount the github SSH secret for pulling private repositories.
-    - name: private-repo
-    # Mount a secret for pulling images from GCR.
-    - name: tigera-dev-ci-pull-credentials
-
   prologue:
     commands:
     - echo $DOCKERHUB_PASSWORD | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
-    # Load the github access secrets.  First fix the permissions.
-    - chmod 0600 ~/.keys/*
-    - ssh-add ~/.keys/*
-    - docker login --username casey@tigera.io -u _json_key -p "$(cat /home/semaphore/tigera-dev-ci.json)" https://gcr.io
+    - checkout 
+    - git fetch --unshallow
 
 blocks:
   - name: Unit Tests

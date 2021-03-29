@@ -104,7 +104,7 @@ guard-ssh-forwarding-bug:
 	fi;
 
 ## Update dependency pins
-update-pins: guard-ssh-forwarding-bug replace-libcalico-pin
+update-pins: guard-ssh-forwarding-bug update-libcalico-pin
 
 ###############################################################################
 # This section contains the code generation stuff

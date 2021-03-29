@@ -104,7 +104,7 @@ guard-ssh-forwarding-bug:
 	fi;
 
 ## Update dependency pins
-update-pins: guard-ssh-forwarding-bug replace-libcalico-pin
+update-pins: guard-ssh-forwarding-bug update-libcalico-pin
 
 ###############################################################################
 # This section contains the code generation stuff
@@ -120,25 +120,25 @@ update-pins: guard-ssh-forwarding-bug replace-libcalico-pin
 	touch $@
 
 $(BINDIR)/deepcopy-gen:
-	GOBIN=$(PWD)/$(BINDIR) go install k8s.io/code-generator/cmd/deepcopy-gen
+	$(DOCKER_GO_BUILD) sh -c "GOBIN=/go/src/$(PACKAGE_NAME)/$(BINDIR) go install k8s.io/code-generator/cmd/deepcopy-gen"
 
 $(BINDIR)/client-gen:
-	GOBIN=$(PWD)/$(BINDIR) go install k8s.io/code-generator/cmd/client-gen
+	$(DOCKER_GO_BUILD) sh -c "GOBIN=/go/src/$(PACKAGE_NAME)/$(BINDIR) go install k8s.io/code-generator/cmd/client-gen"
 
 $(BINDIR)/lister-gen:
-	GOBIN=$(PWD)/$(BINDIR) go install k8s.io/code-generator/cmd/lister-gen
+	$(DOCKER_GO_BUILD) sh -c "GOBIN=/go/src/$(PACKAGE_NAME)/$(BINDIR) go install k8s.io/code-generator/cmd/lister-gen"
 
 $(BINDIR)/informer-gen:
-	GOBIN=$(PWD)/$(BINDIR) go install k8s.io/code-generator/cmd/informer-gen
+	$(DOCKER_GO_BUILD) sh -c "GOBIN=/go/src/$(PACKAGE_NAME)/$(BINDIR) go install k8s.io/code-generator/cmd/informer-gen"
 
 $(BINDIR)/defaulter-gen: 
-	GOBIN=$(PWD)/$(BINDIR) go install k8s.io/code-generator/cmd/defaulter-gen
+	$(DOCKER_GO_BUILD) sh -c "GOBIN=/go/src/$(PACKAGE_NAME)/$(BINDIR) go install k8s.io/code-generator/cmd/defaulter-gen"
 
 $(BINDIR)/conversion-gen: 
-	GOBIN=$(PWD)/$(BINDIR) go install k8s.io/code-generator/cmd/conversion-gen
+	$(DOCKER_GO_BUILD) sh -c "GOBIN=/go/src/$(PACKAGE_NAME)/$(BINDIR) go install k8s.io/code-generator/cmd/conversion-gen"
 
 $(BINDIR)/openapi-gen:
-	GOBIN=$(PWD)/$(BINDIR) go install k8s.io/code-generator/cmd/openapi-gen
+	$(DOCKER_GO_BUILD) sh -c "GOBIN=/go/src/$(PACKAGE_NAME)/$(BINDIR) go install k8s.io/code-generator/cmd/openapi-gen"
 
 # Regenerate all files if the gen exes changed or any "types.go" files changed
 .PHONY: gen-files

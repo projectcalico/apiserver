@@ -27,26 +27,14 @@ blocks:
   - name: Unit Tests
     dependencies: []
     task:
-      prologue:
-        commands:
-          - checkout
-          # Semaphore is doing shallow clone on a commit without tags.
-          # unshallow it for GIT_VERSION:=$(shell git describe --tags --dirty --always) @ Makefile.common
-          - git fetch --unshallow
       jobs:
-        - name: CI
+        - name: "make ci"
           commands:
             - make ci
 
   - name: Static Checks
     dependencies: []
     task:
-      prologue:
-        commands:
-          - checkout
-          # Semaphore is doing shallow clone on a commit without tags.
-          # unshallow it for GIT_VERSION:=$(shell git describe --tags --dirty --always) @ Makefile.common
-          - git fetch --unshallow
       jobs:
         - name: Static Checks
           commands:
@@ -63,14 +51,6 @@ blocks:
         - name: docker
       prologue:
         commands:
-          - checkout
-          # Semaphore is doing shallow clone on a commit without tags.
-          # unshallow it for GIT_VERSION:=$(shell git describe --tags --dirty --always) @ Makefile.common
-          - git fetch --unshallow
-          # Correct permissions since they are too open by default:
-          - chmod 0600 ~/.keys/*
-          # Add the key to the ssh agent:
-          - ssh-add ~/.keys/*
           # Login to docker in order to pull images.
           - echo $DOCKER_TOKEN | docker login --username "$DOCKER_USER" --password-stdin
           - echo $QUAY_TOKEN | docker login --username "$QUAY_USER" --password-stdin quay.io

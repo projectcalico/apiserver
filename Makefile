@@ -1,5 +1,5 @@
 PACKAGE_NAME    ?= github.com/projectcalico/apiserver
-GO_BUILD_VER    ?= v0.49
+GO_BUILD_VER    ?= v0.51
 GOMOD_VENDOR    := false
 GIT_USE_SSH      = true
 LOCAL_CHECKS     = lint-cache-dir goimports check-copyright
@@ -47,7 +47,8 @@ include Makefile.common
 ###############################################################################
 K8S_VERSION = v1.16.3
 BINDIR ?= bin
-CONTAINER_NAME = quay.io/calico/apiserver
+BUILD_IMAGE?=calico/apiserver
+PUSH_IMAGES?=$(BUILD_IMAGE) quay.io/calico/apiserver
 BUILD_DIR ?= build
 TOP_SRC_DIRS = pkg cmd
 SRC_DIRS = $(shell sh -c "find $(TOP_SRC_DIRS) -name \\*.go \
@@ -189,24 +190,8 @@ gen-swagger: $(BINDIR)/apiserver run-kubernetes-server
 		--kubeconfig test/test-apiserver-kubeconfig.conf --swagger-file-path artifacts/swagger
 
 ###############################################################################
-# ensure we have a real imagetag
-###############################################################################
-imagetag:
-ifndef IMAGETAG
-	$(error IMAGETAG is undefined - run using make <target> IMAGETAG=X.Y.Z)
-endif
-
-tag-image: imagetag calico/apiserver
-	docker tag calico/apiserver:latest $(CONTAINER_NAME):$(IMAGETAG)
-
-push-image: imagetag tag-image
-	docker push $(CONTAINER_NAME):$(IMAGETAG)
-
-###############################################################################
 # Static checks
 ###############################################################################
-.PHONY: static-checks
-
 ## Perform static checks on the code.
 # TODO: re-enable these linters !
 LINT_ARGS := --disable gosimple,govet,structcheck,errcheck,goimports,unused,ineffassign,staticcheck,deadcode,typecheck --timeout 5m
@@ -219,15 +204,7 @@ LINT_ARGS := --disable gosimple,govet,structcheck,errcheck,goimports,unused,inef
 ci: clean check-generated-files static-checks calico/apiserver fv ut
 
 ## Deploys images to registry
-cd:
-ifndef CONFIRM
-	$(error CONFIRM is undefined - run using make <target> CONFIRM=true)
-endif
-ifndef BRANCH_NAME
-	$(error BRANCH_NAME is undefined - run using make <target> BRANCH_NAME=var or set an environment variable)
-endif
-	$(MAKE) push-image IMAGETAG=${BRANCH_NAME}
-	$(MAKE) push-image IMAGETAG=${GIT_VERSION}
+cd: image-all cd-common
 
 ## Check if generated files are out of date
 .PHONY: check-generated-files
@@ -270,10 +247,23 @@ endif
 	        grep -q -e "Not a valid dynamic program" -e "not a dynamic executable" || \
 		( echo "Error: $(BINDIR)/filecheck was not statically linked"; false ) )'
 
-# Build cnx-apiserver docker image.
-# Recursive make calico/apiserver forces make to rebuild dependencies again
-image:
-	make calico/apiserver
+###############################################################################
+# Building the image
+###############################################################################
+CONTAINER_CREATED=.apiserver.created-$(ARCH)
+.PHONY: image $(BUILD_IMAGE)
+image: $(BUILD_IMAGE)
+image-all: $(addprefix sub-image-,$(VALIDARCHES))
+sub-image-%:
+	$(MAKE) image ARCH=$*
+
+$(BUILD_IMAGE): $(CONTAINER_CREATED)
+$(CONTAINER_CREATED): docker-image/Dockerfile.$(ARCH) $(BINDIR)/apiserver
+	docker build -t $(BUILD_IMAGE):latest-$(ARCH) --build-arg QEMU_IMAGE=$(CALICO_BUILD) --build-arg GIT_VERSION=$(GIT_VERSION) -f docker-image/Dockerfile.$(ARCH) .
+ifeq ($(ARCH),amd64)
+	docker tag $(BUILD_IMAGE):latest-$(ARCH) $(BUILD_IMAGE):latest
+endif
+	touch $@
 
 # Build the calico/apiserver docker image.
 .PHONY: calico/apiserver

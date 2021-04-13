@@ -140,13 +140,15 @@ func (rs *resourceStore) Create(ctx context.Context, key string, obj, out runtim
 // Delete removes the specified key and returns the value that existed at that spot.
 // If key didn't exist, it will return NotFound storage error.
 func (rs *resourceStore) Delete(ctx context.Context, key string, out runtime.Object,
-	preconditions *storage.Preconditions, validateDeletion storage.ValidateObjectFunc) error {
+	preconditions *storage.Preconditions, validateDeletion storage.ValidateObjectFunc, cachedExistingObject runtime.Object) error {
 	klog.Infof("Delete called with key: %v for resource %v\n", key, rs.resourceName)
 
 	ns, name, err := NamespaceAndNameFromKey(key, rs.isNamespaced)
 	if err != nil {
 		return err
 	}
+
+	// TODO CASEY: Use the cachedExistingObject to avoid the extra datastore query.
 	delOpts := options.DeleteOptions{}
 	if preconditions != nil {
 		// Get the object to check for validity of UID
@@ -356,12 +358,13 @@ func decode(
 // })
 func (rs *resourceStore) GuaranteedUpdate(
 	ctx context.Context, key string, out runtime.Object, ignoreNotFound bool,
-	precondtions *storage.Preconditions, userUpdate storage.UpdateFunc, suggestion ...runtime.Object) error {
+	precondtions *storage.Preconditions, userUpdate storage.UpdateFunc, suggestion runtime.Object) error {
+
 	// If a suggestion was passed, use that as the initial object, otherwise
 	// use Get() to retrieve it
 	var initObj runtime.Object
-	if len(suggestion) == 1 && suggestion[0] != nil {
-		initObj = suggestion[0]
+	if suggestion != nil {
+		initObj = suggestion
 	} else {
 		initObj = reflect.New(rs.aapiType).Interface().(runtime.Object)
 		opts := storage.GetOptions{IgnoreNotFound: ignoreNotFound}
@@ -370,6 +373,7 @@ func (rs *resourceStore) GuaranteedUpdate(
 			return aapiError(err, key)
 		}
 	}
+
 	// In either case, extract current state from the initial object
 	curState, err := rs.getStateFromObject(initObj)
 	if err != nil {

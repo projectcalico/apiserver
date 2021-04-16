@@ -11,7 +11,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/storage"
-	etcd "k8s.io/apiserver/pkg/storage/etcd3"
 	"k8s.io/apiserver/pkg/storage/storagebackend/factory"
 
 	aapi "github.com/projectcalico/apiserver/pkg/apis/projectcalico"
@@ -77,7 +76,6 @@ func NewNetworkPolicyStorage(opts Options) (registry.DryRunnableStorage, factory
 	dryRunnableStorage := registry.DryRunnableStorage{Storage: &resourceStore{
 		client:            c,
 		codec:             opts.RESTOptions.StorageConfig.Codec,
-		versioner:         APIObjectVersioner{&etcd.APIObjectVersioner{}},
 		aapiType:          reflect.TypeOf(aapi.NetworkPolicy{}),
 		aapiListType:      reflect.TypeOf(aapi.NetworkPolicyList{}),
 		libCalicoType:     reflect.TypeOf(libcalicoapi.NetworkPolicy{}),

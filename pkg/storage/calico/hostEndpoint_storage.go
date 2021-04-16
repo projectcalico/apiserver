@@ -9,7 +9,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/storage"
-	etcd "k8s.io/apiserver/pkg/storage/etcd3"
 	"k8s.io/apiserver/pkg/storage/storagebackend/factory"
 
 	libcalicoapi "github.com/projectcalico/libcalico-go/lib/apis/v3"
@@ -53,7 +52,6 @@ func NewHostEndpointStorage(opts Options) (registry.DryRunnableStorage, factory.
 	dryRunnableStorage := registry.DryRunnableStorage{Storage: &resourceStore{
 		client:            c,
 		codec:             opts.RESTOptions.StorageConfig.Codec,
-		versioner:         etcd.APIObjectVersioner{},
 		aapiType:          reflect.TypeOf(aapi.HostEndpoint{}),
 		aapiListType:      reflect.TypeOf(aapi.HostEndpointList{}),
 		libCalicoType:     reflect.TypeOf(libcalicoapi.HostEndpoint{}),

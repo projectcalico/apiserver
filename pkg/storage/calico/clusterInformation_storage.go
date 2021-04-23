@@ -3,6 +3,7 @@
 package calico
 
 import (
+	"fmt"
 	"reflect"
 
 	"golang.org/x/net/context"
@@ -24,22 +25,17 @@ import (
 func NewClusterInformationStorage(opts Options) (registry.DryRunnableStorage, factory.DestroyFunc) {
 	c := CreateClientFromConfig()
 	createFn := func(ctx context.Context, c clientv3.Interface, obj resourceObject, opts clientOpts) (resourceObject, error) {
-		oso := opts.(options.SetOptions)
-		res := obj.(*libcalicoapi.ClusterInformation)
-		return c.ClusterInformation().Create(ctx, res, oso)
+		return nil, fmt.Errorf("Create not supported on ClusterInformation")
 	}
 	updateFn := func(ctx context.Context, c clientv3.Interface, obj resourceObject, opts clientOpts) (resourceObject, error) {
-		oso := opts.(options.SetOptions)
-		res := obj.(*libcalicoapi.ClusterInformation)
-		return c.ClusterInformation().Update(ctx, res, oso)
+		return nil, fmt.Errorf("Update not supported on ClusterInformation")
 	}
 	getFn := func(ctx context.Context, c clientv3.Interface, ns string, name string, opts clientOpts) (resourceObject, error) {
 		ogo := opts.(options.GetOptions)
 		return c.ClusterInformation().Get(ctx, name, ogo)
 	}
 	deleteFn := func(ctx context.Context, c clientv3.Interface, ns string, name string, opts clientOpts) (resourceObject, error) {
-		odo := opts.(options.DeleteOptions)
-		return c.ClusterInformation().Delete(ctx, name, odo)
+		return nil, fmt.Errorf("Delete not supported on ClusterInformation")
 	}
 	listFn := func(ctx context.Context, c clientv3.Interface, opts clientOpts) (resourceListObject, error) {
 		olo := opts.(options.ListOptions)

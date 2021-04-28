@@ -3,7 +3,6 @@
 package calico
 
 import (
-	"fmt"
 	"reflect"
 
 	"golang.org/x/net/context"
@@ -24,18 +23,9 @@ import (
 // NewClusterInformationStorage creates a new libcalico-based storage.Interface implementation for ClusterInformation
 func NewClusterInformationStorage(opts Options) (registry.DryRunnableStorage, factory.DestroyFunc) {
 	c := CreateClientFromConfig()
-	createFn := func(ctx context.Context, c clientv3.Interface, obj resourceObject, opts clientOpts) (resourceObject, error) {
-		return nil, fmt.Errorf("Create not supported on ClusterInformation")
-	}
-	updateFn := func(ctx context.Context, c clientv3.Interface, obj resourceObject, opts clientOpts) (resourceObject, error) {
-		return nil, fmt.Errorf("Update not supported on ClusterInformation")
-	}
 	getFn := func(ctx context.Context, c clientv3.Interface, ns string, name string, opts clientOpts) (resourceObject, error) {
 		ogo := opts.(options.GetOptions)
 		return c.ClusterInformation().Get(ctx, name, ogo)
-	}
-	deleteFn := func(ctx context.Context, c clientv3.Interface, ns string, name string, opts clientOpts) (resourceObject, error) {
-		return nil, fmt.Errorf("Delete not supported on ClusterInformation")
 	}
 	listFn := func(ctx context.Context, c clientv3.Interface, opts clientOpts) (resourceListObject, error) {
 		olo := opts.(options.ListOptions)
@@ -54,10 +44,7 @@ func NewClusterInformationStorage(opts Options) (registry.DryRunnableStorage, fa
 		libCalicoType:     reflect.TypeOf(libcalicoapi.ClusterInformation{}),
 		libCalicoListType: reflect.TypeOf(libcalicoapi.ClusterInformationList{}),
 		isNamespaced:      false,
-		create:            createFn,
-		update:            updateFn,
 		get:               getFn,
-		delete:            deleteFn,
 		list:              listFn,
 		watch:             watchFn,
 		resourceName:      "ClusterInformation",

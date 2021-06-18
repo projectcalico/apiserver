@@ -33,7 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 
 	calico "github.com/projectcalico/libcalico-go/lib/apis/v3"
-	"github.com/projectcalico/libcalico-go/lib/numorstring"
+	"github.com/projectcalico/api/pkg/lib/numorstring"
 
 	"github.com/projectcalico/apiserver/pkg/apis/projectcalico"
 	_ "github.com/projectcalico/apiserver/pkg/apis/projectcalico/install"

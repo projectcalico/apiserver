@@ -128,7 +128,7 @@ cd: image-all cd-common
 # Some will have dedicated targets to make it easier to type, for example
 # "apiserver" instead of "$(BINDIR)/apiserver".
 #########################################################################
-$(BINDIR)/apiserver: .generate_files $(K8SAPISERVER_GO_FILES)
+$(BINDIR)/apiserver: $(K8SAPISERVER_GO_FILES)
 ifndef RELEASE_BUILD
 	$(eval LDFLAGS:=$(RELEASE_LDFLAGS))
 else
@@ -177,7 +177,7 @@ endif
 
 # Build the calico/apiserver docker image.
 .PHONY: calico/apiserver
-calico/apiserver: .generate_files $(BINDIR)/apiserver $(BINDIR)/filecheck
+calico/apiserver: $(BINDIR)/apiserver $(BINDIR)/filecheck
 	rm -rf docker-image/bin
 	mkdir -p docker-image/bin
 	cp $(BINDIR)/apiserver docker-image/bin/
@@ -326,16 +326,8 @@ clean: clean-bin clean-build-image clean-hack-lib
 clean-build-image:
 	docker rmi -f calico/apiserver > /dev/null 2>&1 || true
 
-clean-generated:
-	rm -f .generate_files
-	find $(TOP_SRC_DIRS) -name zz_generated* -exec rm {} \;
-	# rollback changes to the generated clientset directories
-	# find $(TOP_SRC_DIRS) -type d -name *_generated -exec rm -rf {} \;
-	rm -rf pkg/client/clientset_generated pkg/client/informers_generated pkg/client/listers_generated
-
 clean-bin:
 	rm -rf $(BINDIR) \
-	    .generate_execs \
 	    docker-image/bin
 
 clean-hack-lib:

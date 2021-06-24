@@ -46,7 +46,7 @@ func (rs *resourceStore) watchResource(ctx context.Context, resourceVersion stri
 func (wc *watchChan) convertEvent(ce cwatch.Event) (res *watch.Event) {
 	switch ce.Type {
 	case cwatch.Added:
-		aapiObject := convertToAAPI(ce.Object)
+		aapiObject := ce.Object
 		if aapiObject == nil || !wc.filter(aapiObject) {
 			return nil
 		}
@@ -55,7 +55,7 @@ func (wc *watchChan) convertEvent(ce cwatch.Event) (res *watch.Event) {
 			Object: aapiObject,
 		}
 	case cwatch.Deleted:
-		aapiObject := convertToAAPI(ce.Previous)
+		aapiObject := ce.Previous
 		if aapiObject == nil || !wc.filter(aapiObject) {
 			return nil
 		}
@@ -64,7 +64,7 @@ func (wc *watchChan) convertEvent(ce cwatch.Event) (res *watch.Event) {
 			Object: aapiObject,
 		}
 	case cwatch.Modified:
-		aapiObject := convertToAAPI(ce.Object)
+		aapiObject := ce.Object
 		if aapiObject == nil {
 			return nil
 		}
@@ -75,7 +75,7 @@ func (wc *watchChan) convertEvent(ce cwatch.Event) (res *watch.Event) {
 			}
 			return res
 		}
-		oldAapiObject := convertToAAPI(ce.Previous)
+		oldAapiObject := ce.Previous
 		curObjPasses := wc.filter(aapiObject)
 		oldObjPasses := wc.filter(oldAapiObject)
 		switch {

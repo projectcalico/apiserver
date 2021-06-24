@@ -29,10 +29,10 @@ import (
 	genericoptions "k8s.io/apiserver/pkg/server/options"
 	restclient "k8s.io/client-go/rest"
 
-	"github.com/projectcalico/apiserver/cmd/apiserver/server"
 	v3 "github.com/projectcalico/api/pkg/apis/projectcalico/v3"
-	"github.com/projectcalico/apiserver/pkg/apiserver"
 	calicoclient "github.com/projectcalico/api/pkg/client/clientset_generated/clientset"
+	"github.com/projectcalico/apiserver/cmd/apiserver/server"
+	"github.com/projectcalico/apiserver/pkg/apiserver"
 )
 
 const defaultEtcdPathPrefix = ""

@@ -119,20 +119,10 @@ LINT_ARGS := --disable gosimple,govet,structcheck,errcheck,goimports,unused,inef
 ###############################################################################
 .PHONY: ci
 ## Run what CI runs
-ci: clean check-generated-files static-checks calico/apiserver fv ut
+ci: clean static-checks calico/apiserver fv ut
 
 ## Deploys images to registry
 cd: image-all cd-common
-
-## Check if generated files are out of date
-.PHONY: check-generated-files
-check-generated-files: .generate_files
-	if (git describe --tags --dirty | grep -c dirty >/dev/null); then \
-	  echo "Generated files are out of date."; \
-	  false; \
-	else \
-	  echo "Generated files are up to date."; \
-	fi
 
 # This section builds the output binaries.
 # Some will have dedicated targets to make it easier to type, for example

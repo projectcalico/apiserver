@@ -7,13 +7,9 @@ import (
 
 	"golang.org/x/net/context"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
-	"k8s.io/apiserver/pkg/storage"
 	etcd "k8s.io/apiserver/pkg/storage/etcd3"
 	"k8s.io/apiserver/pkg/storage/storagebackend/factory"
-
-	aapi "github.com/projectcalico/api/pkg/apis/projectcalico/v3"
 
 	api "github.com/projectcalico/api/pkg/apis/projectcalico/v3"
 	"github.com/projectcalico/libcalico-go/lib/clientv3"
@@ -51,62 +47,19 @@ func NewBGPConfigurationStorage(opts Options) (registry.DryRunnableStorage, fact
 		return c.BGPConfigurations().Watch(ctx, olo)
 	}
 	dryRunnableStorage := registry.DryRunnableStorage{Storage: &resourceStore{
-		client:            c,
-		codec:             opts.RESTOptions.StorageConfig.Codec,
-		versioner:         etcd.APIObjectVersioner{},
-		aapiType:          reflect.TypeOf(aapi.BGPConfiguration{}),
-		aapiListType:      reflect.TypeOf(aapi.BGPConfigurationList{}),
-		libCalicoType:     reflect.TypeOf(api.BGPConfiguration{}),
-		libCalicoListType: reflect.TypeOf(api.BGPConfigurationList{}),
-		isNamespaced:      false,
-		create:            createFn,
-		update:            updateFn,
-		get:               getFn,
-		delete:            deleteFn,
-		list:              listFn,
-		watch:             watchFn,
-		resourceName:      "BGPConfiguration",
-		converter:         BGPConfigurationConverter{},
+		client:       c,
+		codec:        opts.RESTOptions.StorageConfig.Codec,
+		versioner:    etcd.APIObjectVersioner{},
+		apiType:      reflect.TypeOf(api.BGPConfiguration{}),
+		apiListType:  reflect.TypeOf(api.BGPConfigurationList{}),
+		isNamespaced: false,
+		create:       createFn,
+		update:       updateFn,
+		get:          getFn,
+		delete:       deleteFn,
+		list:         listFn,
+		watch:        watchFn,
+		resourceName: "BGPConfiguration",
 	}, Codec: opts.RESTOptions.StorageConfig.Codec}
 	return dryRunnableStorage, func() {}
-}
-
-type BGPConfigurationConverter struct {
-}
-
-func (gc BGPConfigurationConverter) convertToLibcalico(aapiObj runtime.Object) resourceObject {
-	aapiBGPConfiguration := aapiObj.(*aapi.BGPConfiguration)
-	lcgBGPConfiguration := &api.BGPConfiguration{}
-	lcgBGPConfiguration.TypeMeta = aapiBGPConfiguration.TypeMeta
-	lcgBGPConfiguration.ObjectMeta = aapiBGPConfiguration.ObjectMeta
-	lcgBGPConfiguration.Kind = api.KindBGPConfiguration
-	lcgBGPConfiguration.APIVersion = api.GroupVersionCurrent
-	lcgBGPConfiguration.Spec = aapiBGPConfiguration.Spec
-	return lcgBGPConfiguration
-}
-
-func (gc BGPConfigurationConverter) convertToAAPI(libcalicoObject resourceObject, aapiObj runtime.Object) {
-	lcgBGPConfiguration := libcalicoObject.(*api.BGPConfiguration)
-	aapiBGPConfiguration := aapiObj.(*aapi.BGPConfiguration)
-	aapiBGPConfiguration.Spec = lcgBGPConfiguration.Spec
-	aapiBGPConfiguration.TypeMeta = lcgBGPConfiguration.TypeMeta
-	aapiBGPConfiguration.ObjectMeta = lcgBGPConfiguration.ObjectMeta
-}
-
-func (gc BGPConfigurationConverter) convertToAAPIList(libcalicoListObject resourceListObject, aapiListObj runtime.Object, pred storage.SelectionPredicate) {
-	lcgBGPConfigurationList := libcalicoListObject.(*api.BGPConfigurationList)
-	aapiBGPConfigurationList := aapiListObj.(*aapi.BGPConfigurationList)
-	if libcalicoListObject == nil {
-		aapiBGPConfigurationList.Items = []aapi.BGPConfiguration{}
-		return
-	}
-	aapiBGPConfigurationList.TypeMeta = lcgBGPConfigurationList.TypeMeta
-	aapiBGPConfigurationList.ListMeta = lcgBGPConfigurationList.ListMeta
-	for _, item := range lcgBGPConfigurationList.Items {
-		aapiBGPConfiguration := aapi.BGPConfiguration{}
-		gc.convertToAAPI(&item, &aapiBGPConfiguration)
-		if matched, err := pred.Matches(&aapiBGPConfiguration); err == nil && matched {
-			aapiBGPConfigurationList.Items = append(aapiBGPConfigurationList.Items, aapiBGPConfiguration)
-		}
-	}
 }

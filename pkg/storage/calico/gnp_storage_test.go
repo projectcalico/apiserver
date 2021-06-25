@@ -9,8 +9,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	calico "github.com/projectcalico/api/pkg/apis/projectcalico/v3"
-
-	v3 "github.com/projectcalico/api/pkg/apis/projectcalico/v3"
 )
 
 func TestInvalidFieldError(t *testing.T) {
@@ -21,10 +19,10 @@ func TestInvalidFieldError(t *testing.T) {
 	out := &calico.GlobalNetworkPolicy{}
 	obj := &calico.GlobalNetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{Name: "default.foo"},
-		Spec: v3.GlobalNetworkPolicySpec{
-			Egress: []v3.Rule{{
+		Spec: calico.GlobalNetworkPolicySpec{
+			Egress: []calico.Rule{{
 				Action: "Allow",
-				Destination: v3.EntityRule{
+				Destination: calico.EntityRule{
 					Selector: "role == 'fish'",
 				},
 			}},

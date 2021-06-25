@@ -7,13 +7,9 @@ import (
 
 	"golang.org/x/net/context"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
-	"k8s.io/apiserver/pkg/storage"
 	etcd "k8s.io/apiserver/pkg/storage/etcd3"
 	"k8s.io/apiserver/pkg/storage/storagebackend/factory"
-
-	aapi "github.com/projectcalico/api/pkg/apis/projectcalico/v3"
 
 	api "github.com/projectcalico/api/pkg/apis/projectcalico/v3"
 	"github.com/projectcalico/libcalico-go/lib/clientv3"
@@ -51,62 +47,19 @@ func NewIPPoolStorage(opts Options) (registry.DryRunnableStorage, factory.Destro
 		return c.IPPools().Watch(ctx, olo)
 	}
 	dryRunnableStorage := registry.DryRunnableStorage{Storage: &resourceStore{
-		client:            c,
-		codec:             opts.RESTOptions.StorageConfig.Codec,
-		versioner:         etcd.APIObjectVersioner{},
-		aapiType:          reflect.TypeOf(aapi.IPPool{}),
-		aapiListType:      reflect.TypeOf(aapi.IPPoolList{}),
-		libCalicoType:     reflect.TypeOf(api.IPPool{}),
-		libCalicoListType: reflect.TypeOf(api.IPPoolList{}),
-		isNamespaced:      false,
-		create:            createFn,
-		update:            updateFn,
-		get:               getFn,
-		delete:            deleteFn,
-		list:              listFn,
-		watch:             watchFn,
-		resourceName:      "IPPool",
-		converter:         IPPoolConverter{},
+		client:       c,
+		codec:        opts.RESTOptions.StorageConfig.Codec,
+		versioner:    etcd.APIObjectVersioner{},
+		aapiType:     reflect.TypeOf(api.IPPool{}),
+		aapiListType: reflect.TypeOf(api.IPPoolList{}),
+		isNamespaced: false,
+		create:       createFn,
+		update:       updateFn,
+		get:          getFn,
+		delete:       deleteFn,
+		list:         listFn,
+		watch:        watchFn,
+		resourceName: "IPPool",
 	}, Codec: opts.RESTOptions.StorageConfig.Codec}
 	return dryRunnableStorage, func() {}
-}
-
-type IPPoolConverter struct {
-}
-
-func (gc IPPoolConverter) convertToLibcalico(aapiObj runtime.Object) resourceObject {
-	aapiIPPool := aapiObj.(*aapi.IPPool)
-	lcgIPPool := &api.IPPool{}
-	lcgIPPool.TypeMeta = aapiIPPool.TypeMeta
-	lcgIPPool.ObjectMeta = aapiIPPool.ObjectMeta
-	lcgIPPool.Kind = api.KindIPPool
-	lcgIPPool.APIVersion = api.GroupVersionCurrent
-	lcgIPPool.Spec = aapiIPPool.Spec
-	return lcgIPPool
-}
-
-func (gc IPPoolConverter) convertToAAPI(libcalicoObject resourceObject, aapiObj runtime.Object) {
-	lcgIPPool := libcalicoObject.(*api.IPPool)
-	aapiIPPool := aapiObj.(*aapi.IPPool)
-	aapiIPPool.Spec = lcgIPPool.Spec
-	aapiIPPool.TypeMeta = lcgIPPool.TypeMeta
-	aapiIPPool.ObjectMeta = lcgIPPool.ObjectMeta
-}
-
-func (gc IPPoolConverter) convertToAAPIList(libcalicoListObject resourceListObject, aapiListObj runtime.Object, pred storage.SelectionPredicate) {
-	lcgIPPoolList := libcalicoListObject.(*api.IPPoolList)
-	aapiIPPoolList := aapiListObj.(*aapi.IPPoolList)
-	if libcalicoListObject == nil {
-		aapiIPPoolList.Items = []aapi.IPPool{}
-		return
-	}
-	aapiIPPoolList.TypeMeta = lcgIPPoolList.TypeMeta
-	aapiIPPoolList.ListMeta = lcgIPPoolList.ListMeta
-	for _, item := range lcgIPPoolList.Items {
-		aapiIPPool := aapi.IPPool{}
-		gc.convertToAAPI(&item, &aapiIPPool)
-		if matched, err := pred.Matches(&aapiIPPool); err == nil && matched {
-			aapiIPPoolList.Items = append(aapiIPPoolList.Items, aapiIPPool)
-		}
-	}
 }

@@ -40,11 +40,6 @@ type resourceListObject interface {
 	metav1.ListMetaAccessor
 }
 
-type resourceConverter interface {
-	convertToLibcalico(runtime.Object) resourceObject
-	convertToAAPI(resourceObject, runtime.Object)
-	convertToAAPIList(resourceListObject, runtime.Object, storage.SelectionPredicate)
-}
 type clientOpts interface{}
 
 type clientObjectOperator func(context.Context, clientv3.Interface, resourceObject, clientOpts) (resourceObject, error)
@@ -53,22 +48,19 @@ type clientLister func(context.Context, clientv3.Interface, clientOpts) (resourc
 type clientWatcher func(context.Context, clientv3.Interface, clientOpts) (calicowatch.Interface, error)
 
 type resourceStore struct {
-	client            clientv3.Interface
-	codec             runtime.Codec
-	versioner         storage.Versioner
-	aapiType          reflect.Type
-	aapiListType      reflect.Type
-	libCalicoType     reflect.Type
-	libCalicoListType reflect.Type
-	isNamespaced      bool
-	create            clientObjectOperator
-	update            clientObjectOperator
-	get               clientNameOperator
-	delete            clientNameOperator
-	list              clientLister
-	watch             clientWatcher
-	resourceName      string
-	converter         resourceConverter
+	client       clientv3.Interface
+	codec        runtime.Codec
+	versioner    storage.Versioner
+	aapiType     reflect.Type
+	aapiListType reflect.Type
+	isNamespaced bool
+	create       clientObjectOperator
+	update       clientObjectOperator
+	get          clientNameOperator
+	delete       clientNameOperator
+	list         clientLister
+	watch        clientWatcher
+	resourceName string
 }
 
 func CreateClientFromConfig() clientv3.Interface {
@@ -92,6 +84,19 @@ func CreateClientFromConfig() clientv3.Interface {
 	}
 
 	return c
+}
+
+func aapiError(err error, key string) error {
+	switch err.(type) {
+	case errors.ErrorResourceAlreadyExists:
+		return storage.NewKeyExistsError(key, 0)
+	case errors.ErrorResourceDoesNotExist:
+		return storage.NewKeyNotFoundError(key, 0)
+	case errors.ErrorResourceUpdateConflict:
+		return storage.NewResourceVersionConflictsError(key, 0)
+	default:
+		return err
+	}
 }
 
 // Versioned returns the versioned associated with this interface
@@ -119,10 +124,9 @@ func validationError(err error, qualifiedKind schema.GroupKind, name string) *aa
 // set to the read value from database.
 func (rs *resourceStore) Create(ctx context.Context, key string, obj, out runtime.Object, ttl uint64) error {
 	klog.Infof("Create called with key: %v for resource %v\n", key, rs.resourceName)
-	lcObj := rs.converter.convertToLibcalico(obj)
 
 	opts := options.SetOptions{TTL: time.Duration(ttl) * time.Second}
-	createdObj, err := rs.create(ctx, rs.client, lcObj, opts)
+	createdObj, err := rs.create(ctx, rs.client, obj, opts)
 	if err != nil {
 		klog.Errorf("Error creating resource %v key %v error %v\n", rs.resourceName, key, err)
 		switch err.(type) {
@@ -133,7 +137,7 @@ func (rs *resourceStore) Create(ctx context.Context, key string, obj, out runtim
 			return aapiError(err, key)
 		}
 	}
-	rs.converter.convertToAAPI(createdObj, out)
+	out = createdObj
 	return nil
 }
 
@@ -160,7 +164,7 @@ func (rs *resourceStore) Delete(ctx context.Context, key string, out runtime.Obj
 			return aapiError(err, key)
 		}
 		aapiObj := reflect.New(rs.aapiType).Interface().(runtime.Object)
-		rs.converter.convertToAAPI(libcalicoObj, aapiObj)
+		aapiObj = libcalicoObj
 		if err := checkPreconditions(key, preconditions, aapiObj); err != nil {
 			return err
 		}
@@ -174,7 +178,7 @@ func (rs *resourceStore) Delete(ctx context.Context, key string, out runtime.Obj
 		return aapiError(err, key)
 	}
 
-	rs.converter.convertToAAPI(libcalicoObj, out)
+	out = libcalicoObj
 	return nil
 }
 
@@ -246,7 +250,7 @@ func (rs *resourceStore) Get(ctx context.Context, key string, optsK8s storage.Ge
 		}
 		return e
 	}
-	rs.converter.convertToAAPI(libcalicoObj, out)
+	out = libcalicoObj
 	return nil
 }
 
@@ -275,12 +279,13 @@ func (rs *resourceStore) List(ctx context.Context, key string, optsK8s storage.L
 	if err != nil {
 		e := aapiError(err, key)
 		if storage.IsNotFound(e) {
-			rs.converter.convertToAAPIList(libcalicoObjList, listObj, optsK8s.Predicate)
+			listObj = libcalicoObjList
 			return nil
 		}
 		return e
 	}
-	rs.converter.convertToAAPIList(libcalicoObjList, listObj, optsK8s.Predicate)
+
+	listObj = libcalicoObjList
 	return nil
 }
 
@@ -422,7 +427,7 @@ func (rs *resourceStore) GuaranteedUpdate(
 		if updatedRes.GetObjectMeta().GetResourceVersion() == "" || revInt < int(curState.rev) {
 			updatedRes.(resourceObject).GetObjectMeta().SetResourceVersion(strconv.FormatInt(curState.rev, 10))
 		}
-		libcalicoObj := rs.converter.convertToLibcalico(updatedRes)
+		libcalicoObj := updatedRes
 
 		var opts options.SetOptions
 		if ttl != nil {
@@ -457,7 +462,7 @@ func (rs *resourceStore) GuaranteedUpdate(
 				return e
 			}
 		}
-		rs.converter.convertToAAPI(createdLibcalicoObj, out)
+		out = createdLibcalicoObj
 		return nil
 	}
 	klog.Errorf("GuaranteedUpdate failed.")

@@ -84,6 +84,11 @@ Makefile.common.$(MAKE_BRANCH):
 
 include Makefile.common
 
+ifeq ($(ARCH),arm64)
+# Prevents docker from tagging the output image incorrectly as amd64.
+TARGET_PLATFORM=--platform=linux/arm64
+endif
+
 ###############################################################################
 # Managing the upstream library pins
 #
@@ -137,10 +142,10 @@ endif
 	@echo Building k8sapiserver...
 	mkdir -p bin
 	$(DOCKER_RUN) $(CALICO_BUILD) \
-		sh -c '$(GIT_CONFIG_SSH) go build -v -i -o $@ -v $(LDFLAGS) "$(PACKAGE_NAME)/cmd/apiserver" && \
-		( ldd $(BINDIR)/apiserver 2>&1 | \
+		sh -c '$(GIT_CONFIG_SSH) go build -v -i -o $@-$(ARCH) -v $(LDFLAGS) "$(PACKAGE_NAME)/cmd/apiserver" && \
+		( ldd $(BINDIR)/apiserver-$(ARCH) 2>&1 | \
 	        grep -q -e "Not a valid dynamic program" -e "not a dynamic executable" || \
-		( echo "Error: $(BINDIR)/apiserver was not statically linked"; false ) )'
+		( echo "Error: $(BINDIR)/apiserver-$(ARCH) was not statically linked"; false ) )'
 
 $(BINDIR)/filecheck: $(K8SAPISERVER_GO_FILES)
 ifndef RELEASE_BUILD
@@ -150,10 +155,10 @@ else
 endif
 	@echo Building filecheck...
 	$(DOCKER_RUN) $(CALICO_BUILD) \
-		sh -c '$(GIT_CONFIG_SSH) go build -v -i -o $@ -v $(LDFLAGS) "$(PACKAGE_NAME)/cmd/filecheck" && \
-		( ldd $(BINDIR)/filecheck 2>&1 | \
+		sh -c '$(GIT_CONFIG_SSH) go build -v -i -o $@-$(ARCH) -v $(LDFLAGS) "$(PACKAGE_NAME)/cmd/filecheck" && \
+		( ldd $(BINDIR)/filecheck-$(ARCH) 2>&1 | \
 	        grep -q -e "Not a valid dynamic program" -e "not a dynamic executable" || \
-		( echo "Error: $(BINDIR)/filecheck was not statically linked"; false ) )'
+		( echo "Error: $(BINDIR)/filecheck-$(ARCH) was not statically linked"; false ) )'
 
 ###############################################################################
 # Building the image
@@ -168,8 +173,8 @@ sub-image-%:
 	$(MAKE) image ARCH=$*
 
 $(API_SERVER_IMAGE): $(CONTAINER_CREATED)
-$(CONTAINER_CREATED): docker-image/Dockerfile.$(ARCH) $(BINDIR)/apiserver
-	docker build -t $(API_SERVER_IMAGE):latest-$(ARCH) --build-arg QEMU_IMAGE=$(CALICO_BUILD) --build-arg GIT_VERSION=$(GIT_VERSION) -f docker-image/Dockerfile.$(ARCH) .
+$(CONTAINER_CREATED): register docker-image/Dockerfile.$(ARCH) $(BINDIR)/apiserver
+	docker build --pull -t $(API_SERVER_IMAGE):latest-$(ARCH) --build-arg QEMU_IMAGE=$(CALICO_BUILD) --build-arg GIT_VERSION=$(GIT_VERSION) -f docker-image/Dockerfile.$(ARCH) .
 ifeq ($(ARCH),amd64)
 	docker tag $(API_SERVER_IMAGE):latest-$(ARCH) $(API_SERVER_IMAGE):latest
 endif
@@ -177,12 +182,12 @@ endif
 
 # Build the calico/apiserver docker image.
 .PHONY: calico/apiserver
-calico/apiserver: $(BINDIR)/apiserver $(BINDIR)/filecheck
+calico/apiserver: register $(BINDIR)/apiserver $(BINDIR)/filecheck
 	rm -rf docker-image/bin
 	mkdir -p docker-image/bin
-	cp $(BINDIR)/apiserver docker-image/bin/
-	cp $(BINDIR)/filecheck docker-image/bin/
-	docker build --pull -t calico/apiserver --file ./docker-image/Dockerfile.$(ARCH) docker-image
+	cp $(BINDIR)/apiserver-$(ARCH) docker-image/bin/
+	cp $(BINDIR)/filecheck-$(ARCH) docker-image/bin/
+	docker build --pull $(TARGET_PLATFORM) -t calico/apiserver:latest-$(ARCH) --build-arg QEMU_IMAGE=$(CALICO_BUILD) --file ./docker-image/Dockerfile.$(ARCH) docker-image
 
 .PHONY: lint-cache-dir
 lint-cache-dir:

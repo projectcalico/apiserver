@@ -1,0 +1,25 @@
+ARG QEMU_IMAGE=calico/go-build:v0.53-arm64
+FROM ${QEMU_IMAGE} as qemu
+
+FROM --platform=linux/arm64 registry.access.redhat.com/ubi8/ubi-minimal:8.1 as ubi
+COPY --from=qemu /usr/bin/qemu-*-static /usr/bin/
+
+RUN microdnf update
+
+# At runtime, apiserver generate certificates in /code directory
+# hence, provide RW permission for user 1001
+RUN mkdir /code
+RUN rm -rf /tmp
+RUN mkdir /tmp
+
+FROM scratch
+COPY --from=qemu /usr/bin/qemu-*-static /usr/bin/
+
+COPY  --from=ubi /code /code
+COPY  --from=ubi /tmp /tmp
+ADD  bin/apiserver-arm64 /code/apiserver
+ADD  bin/filecheck-arm64 /code/filecheck
+
+WORKDIR /code
+
+ENTRYPOINT ["./apiserver"]

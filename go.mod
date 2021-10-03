@@ -21,6 +21,8 @@ require (
 )
 
 replace (
+	github.com/projectcalico/api => github.com/song-jiang/api v0.1.2-0.20210927153948-3474c0f6c406
+	github.com/projectcalico/libcalico-go => github.com/song-jiang/libcalico-go v1.6.1-0.20210928140900-83bbfc28e5cb
 	k8s.io/api => k8s.io/api v0.21.0-rc.0
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.21.0-rc.0
 	k8s.io/apimachinery => k8s.io/apimachinery v0.21.0-rc.0

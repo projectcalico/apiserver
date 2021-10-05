@@ -10,8 +10,8 @@ RUN mkdir /tmp
 FROM scratch
 COPY  --from=ubi /code /code
 COPY  --from=ubi /tmp /tmp
-ADD  bin/apiserver /code
-ADD  bin/filecheck /code
+ADD  bin/apiserver-amd64 /code/apiserver
+ADD  bin/filecheck-amd64 /code/filecheck
 
 WORKDIR /code
 

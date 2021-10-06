@@ -316,6 +316,28 @@ func (p RESTStorageProvider) NewV3Storage(
 		[]string{"clusterinfo"},
 	)
 
+	caliconodestatusRESTOptions, err := restOptionsGetter.GetRESTOptions(calico.Resource("caliconodestatuses"))
+	if err != nil {
+		return nil, err
+	}
+	caliconodestatusOpts := server.NewOptions(
+		etcd.Options{
+			RESTOptions:   caliconodestatusRESTOptions,
+			Capacity:      1000,
+			ObjectType:    calicoclusterinformation.EmptyObject(),
+			ScopeStrategy: calicoclusterinformation.NewStrategy(scheme),
+			NewListFunc:   calicoclusterinformation.NewList,
+			GetAttrsFunc:  calicoclusterinformation.GetAttrs,
+			Trigger:       nil,
+		},
+		calicostorage.Options{
+			RESTOptions: caliconodestatusRESTOptions,
+		},
+		p.StorageType,
+		authorizer,
+		[]string{"clusterinfo"},
+	)
+
 	storage := map[string]rest.Storage{}
 	storage["networkpolicies"] = rESTInPeace(calicopolicy.NewREST(scheme, *policyOpts))
 	storage["globalnetworkpolicies"] = rESTInPeace(calicogpolicy.NewREST(scheme, *gpolicyOpts))
@@ -328,6 +350,7 @@ func (p RESTStorageProvider) NewV3Storage(
 	storage["profiles"] = rESTInPeace(calicoprofile.NewREST(scheme, *profileOpts))
 	storage["felixconfigurations"] = rESTInPeace(calicofelixconfig.NewREST(scheme, *felixConfigOpts))
 	storage["clusterinformations"] = rESTInPeace(calicoclusterinformation.NewREST(scheme, *clusterInformationOpts))
+	storage["caliconodestatuses"] = rESTInPeace(calicoclusterinformation.NewREST(scheme, *caliconodestatusOpts))
 
 	kubeControllersConfigsStorage, kubeControllersConfigsStatusStorage, err := calicokubecontrollersconfig.NewREST(scheme, *kubeControllersConfigsOpts)
 	if err != nil {

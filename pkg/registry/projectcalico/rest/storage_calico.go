@@ -25,6 +25,7 @@ import (
 	calico "github.com/projectcalico/api/pkg/apis/projectcalico/v3"
 	calicobgpconfiguration "github.com/projectcalico/apiserver/pkg/registry/projectcalico/bgpconfiguration"
 	calicobgppeer "github.com/projectcalico/apiserver/pkg/registry/projectcalico/bgppeer"
+	"github.com/projectcalico/apiserver/pkg/registry/projectcalico/caliconodestatus"
 	calicoclusterinformation "github.com/projectcalico/apiserver/pkg/registry/projectcalico/clusterinformation"
 	calicofelixconfig "github.com/projectcalico/apiserver/pkg/registry/projectcalico/felixconfig"
 	calicognetworkset "github.com/projectcalico/apiserver/pkg/registry/projectcalico/globalnetworkset"
@@ -324,10 +325,10 @@ func (p RESTStorageProvider) NewV3Storage(
 		etcd.Options{
 			RESTOptions:   caliconodestatusRESTOptions,
 			Capacity:      1000,
-			ObjectType:    calicoclusterinformation.EmptyObject(),
-			ScopeStrategy: calicoclusterinformation.NewStrategy(scheme),
-			NewListFunc:   calicoclusterinformation.NewList,
-			GetAttrsFunc:  calicoclusterinformation.GetAttrs,
+			ObjectType:    caliconodestatus.EmptyObject(),
+			ScopeStrategy: caliconodestatus.NewStrategy(scheme),
+			NewListFunc:   caliconodestatus.NewList,
+			GetAttrsFunc:  caliconodestatus.GetAttrs,
 			Trigger:       nil,
 		},
 		calicostorage.Options{
@@ -350,7 +351,7 @@ func (p RESTStorageProvider) NewV3Storage(
 	storage["profiles"] = rESTInPeace(calicoprofile.NewREST(scheme, *profileOpts))
 	storage["felixconfigurations"] = rESTInPeace(calicofelixconfig.NewREST(scheme, *felixConfigOpts))
 	storage["clusterinformations"] = rESTInPeace(calicoclusterinformation.NewREST(scheme, *clusterInformationOpts))
-	storage["caliconodestatuses"] = rESTInPeace(calicoclusterinformation.NewREST(scheme, *caliconodestatusOpts))
+	storage["caliconodestatuses"] = rESTInPeace(caliconodestatus.NewREST(scheme, *caliconodestatusOpts))
 
 	kubeControllersConfigsStorage, kubeControllersConfigsStatusStorage, err := calicokubecontrollersconfig.NewREST(scheme, *kubeControllersConfigsOpts)
 	if err != nil {

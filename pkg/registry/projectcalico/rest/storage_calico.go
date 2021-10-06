@@ -336,7 +336,7 @@ func (p RESTStorageProvider) NewV3Storage(
 		},
 		p.StorageType,
 		authorizer,
-		[]string{"clusterinfo"},
+		[]string{"caliconodestatus"},
 	)
 
 	storage := map[string]rest.Storage{}

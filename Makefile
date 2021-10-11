@@ -84,6 +84,14 @@ Makefile.common.$(MAKE_BRANCH):
 
 include Makefile.common
 
+# We need CGO to leverage Boring SSL.  However, the cross-compile doesn't support CGO yet.
+# Currently CGO can be enbaled in ARM64 and AMD64 builds.
+ifeq ($(ARCH), $(filter $(ARCH),amd64 arm64))
+CGO_ENABLED=1
+else
+CGO_ENABLED=0
+endif
+
 ###############################################################################
 # Managing the upstream library pins
 #
@@ -136,11 +144,8 @@ else
 endif
 	@echo Building k8sapiserver...
 	mkdir -p bin
-	$(DOCKER_RUN) $(CALICO_BUILD) \
-		sh -c '$(GIT_CONFIG_SSH) go build -v -i -o $@ -v $(LDFLAGS) "$(PACKAGE_NAME)/cmd/apiserver" && \
-		( ldd $(BINDIR)/apiserver 2>&1 | \
-	        grep -q -e "Not a valid dynamic program" -e "not a dynamic executable" || \
-		( echo "Error: $(BINDIR)/apiserver was not statically linked"; false ) )'
+	$(DOCKER_RUN) -e CGO_ENABLED=$(CGO_ENABLED) $(CALICO_BUILD) \
+		sh -c '$(GIT_CONFIG_SSH) go build -v -i -o $@ -v $(LDFLAGS) $(PACKAGE_NAME)/cmd/apiserver'
 
 $(BINDIR)/filecheck: $(K8SAPISERVER_GO_FILES)
 ifndef RELEASE_BUILD
@@ -149,11 +154,8 @@ else
 	$(eval LDFLAGS:=$(BUILD_LDFLAGS))
 endif
 	@echo Building filecheck...
-	$(DOCKER_RUN) $(CALICO_BUILD) \
-		sh -c '$(GIT_CONFIG_SSH) go build -v -i -o $@ -v $(LDFLAGS) "$(PACKAGE_NAME)/cmd/filecheck" && \
-		( ldd $(BINDIR)/filecheck 2>&1 | \
-	        grep -q -e "Not a valid dynamic program" -e "not a dynamic executable" || \
-		( echo "Error: $(BINDIR)/filecheck was not statically linked"; false ) )'
+	$(DOCKER_RUN) -e CGO_ENABLED=$(CGO_ENABLED) $(CALICO_BUILD) \
+		sh -c '$(GIT_CONFIG_SSH) go build -v -i -o $@ -v $(LDFLAGS) $(PACKAGE_NAME)/cmd/filecheck'
 
 ###############################################################################
 # Building the image

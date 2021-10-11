@@ -1,5 +1,5 @@
 PACKAGE_NAME    ?= github.com/projectcalico/apiserver
-GO_BUILD_VER    ?= v0.57
+GO_BUILD_VER    ?= casey-enable-cgo
 GOMOD_VENDOR    := false
 GIT_USE_SSH      = true
 LOCAL_CHECKS     = lint-cache-dir goimports check-copyright
@@ -136,11 +136,8 @@ else
 endif
 	@echo Building k8sapiserver...
 	mkdir -p bin
-	$(DOCKER_RUN) $(CALICO_BUILD) \
-		sh -c '$(GIT_CONFIG_SSH) go build -v -i -o $@ -v $(LDFLAGS) "$(PACKAGE_NAME)/cmd/apiserver" && \
-		( ldd $(BINDIR)/apiserver 2>&1 | \
-	        grep -q -e "Not a valid dynamic program" -e "not a dynamic executable" || \
-		( echo "Error: $(BINDIR)/apiserver was not statically linked"; false ) )'
+	$(DOCKER_GO_BUILD_CGO) \
+		sh -c '$(GIT_CONFIG_SSH) go build -v -i -o $@ -v $(LDFLAGS) "$(PACKAGE_NAME)/cmd/apiserver"
 
 $(BINDIR)/filecheck: $(K8SAPISERVER_GO_FILES)
 ifndef RELEASE_BUILD
@@ -149,11 +146,8 @@ else
 	$(eval LDFLAGS:=$(BUILD_LDFLAGS))
 endif
 	@echo Building filecheck...
-	$(DOCKER_RUN) $(CALICO_BUILD) \
-		sh -c '$(GIT_CONFIG_SSH) go build -v -i -o $@ -v $(LDFLAGS) "$(PACKAGE_NAME)/cmd/filecheck" && \
-		( ldd $(BINDIR)/filecheck 2>&1 | \
-	        grep -q -e "Not a valid dynamic program" -e "not a dynamic executable" || \
-		( echo "Error: $(BINDIR)/filecheck was not statically linked"; false ) )'
+	$(DOCKER_GO_BUILD_CGO) \
+		sh -c '$(GIT_CONFIG_SSH) go build -v -i -o $@ -v $(LDFLAGS) "$(PACKAGE_NAME)/cmd/filecheck"
 
 ###############################################################################
 # Building the image

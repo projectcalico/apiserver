@@ -1,8 +1,8 @@
 PACKAGE_NAME    ?= github.com/projectcalico/apiserver
-GO_BUILD_VER    ?= v0.57
+GO_BUILD_VER    ?= v0.58
 GOMOD_VENDOR    := false
 GIT_USE_SSH      = true
-LOCAL_CHECKS     = lint-cache-dir goimports check-copyright
+LOCAL_CHECKS     = lint-cache-dir goimports check-copyright check-boring-ssl
 # Used by Makefile.common
 LIBCALICO_REPO   = github.com/projectcalico/libcalico-go
 # Used only when doing local build
@@ -64,7 +64,7 @@ VERSION_FLAGS = -X $(PACKAGE_NAME)/cmd/apiserver/server.VERSION=$(APISERVER_VERS
 	-X $(PACKAGE_NAME)/cmd/apiserver/server.GIT_REVISION=$(APISERVER_GIT_REVISION)
 
 BUILD_LDFLAGS = -ldflags "$(VERSION_FLAGS)"
-RELEASE_LDFLAGS = -ldflags "$(VERSION_FLAGS) -s -w"
+RELEASE_LDFLAGS = -ldflags "$(VERSION_FLAGS) -w"
 KUBECONFIG_DIR? = /etc/kubernetes/admin.conf
 
 ##############################################################################
@@ -85,8 +85,7 @@ Makefile.common.$(MAKE_BRANCH):
 include Makefile.common
 
 # We need CGO to leverage Boring SSL.  However, the cross-compile doesn't support CGO yet.
-# Currently CGO can be enbaled in ARM64 and AMD64 builds.
-ifeq ($(ARCH), $(filter $(ARCH),amd64 arm64))
+ifeq ($(ARCH), $(filter $(ARCH),amd64))
 CGO_ENABLED=1
 else
 CGO_ENABLED=0
@@ -189,6 +188,11 @@ calico/apiserver: $(BINDIR)/apiserver $(BINDIR)/filecheck
 .PHONY: lint-cache-dir
 lint-cache-dir:
 	mkdir -p $(CURDIR)/.lint-cache
+
+check-boring-ssl: $(BINDIR)/apiserver
+	$(DOCKER_RUN) -e CGO_ENABLED=$(CGO_ENABLED) $(CALICO_BUILD) \
+		go tool nm $(BINDIR)/apiserver > $(BINDIR)/tags.txt && grep '_Cfunc__goboringcrypto_' $(BINDIR)/tags.txt 1> /dev/null
+	-rm -f $(BINDIR)/tags.txt
 
 .PHONY: ut 
 ut: lint-cache-dir run-etcd

@@ -4,12 +4,12 @@ go 1.15
 
 require (
 	github.com/go-openapi/spec v0.19.5
-	github.com/projectcalico/api v0.0.0-20211005125605-f9ef2784d7a8
+	github.com/projectcalico/api v0.0.0-20211011193936-5bcbc3a5e8a9
 	github.com/projectcalico/libcalico-go v1.7.2-0.20211008155657-3a2560b12ae4
 	github.com/sirupsen/logrus v1.7.0
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/pflag v1.0.5
-	golang.org/x/net v0.0.0-20210224082022-3d97a244fca7
+	golang.org/x/net v0.0.0-20210520170846-37e1c6afe023
 	k8s.io/api v0.21.0
 	k8s.io/apimachinery v0.21.0
 	k8s.io/apiserver v0.21.0
@@ -48,3 +48,9 @@ replace (
 	k8s.io/node-api => k8s.io/node-api v0.21.0
 	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.21.0
 )
+
+replace github.com/projectcalico/api => github.com/caseydavenport/api v0.0.0-20211018172502-78086074f4f6
+
+replace github.com/projectcalico/libcalico-go => github.com/caseydavenport/libcalico-go v0.0.0-20211018173706-0daa1fed1172
+
+replace k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20210305001622-591a79e4bda7

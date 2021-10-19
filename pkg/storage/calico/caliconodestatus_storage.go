@@ -37,6 +37,10 @@ func NewCalicoNodeStatusStorage(opts Options) (registry.DryRunnableStorage, fact
 		ogo := opts.(options.GetOptions)
 		return c.CalicoNodeStatus().Get(ctx, name, ogo)
 	}
+	deleteFn := func(ctx context.Context, c clientv3.Interface, ns string, name string, opts clientOpts) (resourceObject, error) {
+		odo := opts.(options.DeleteOptions)
+		return c.CalicoNodeStatus().Delete(ctx, name, odo)
+	}
 	listFn := func(ctx context.Context, c clientv3.Interface, opts clientOpts) (resourceListObject, error) {
 		olo := opts.(options.ListOptions)
 		return c.CalicoNodeStatus().List(ctx, olo)
@@ -57,6 +61,7 @@ func NewCalicoNodeStatusStorage(opts Options) (registry.DryRunnableStorage, fact
 		create:            createFn,
 		update:            updateFn,
 		get:               getFn,
+		delete:            deleteFn,
 		list:              listFn,
 		watch:             watchFn,
 		resourceName:      "CalicoNodeStatus",

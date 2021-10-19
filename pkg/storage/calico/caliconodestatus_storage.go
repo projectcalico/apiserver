@@ -23,6 +23,16 @@ import (
 // NewCalicoNodeStatusStorage creates a new libcalico-based storage.Interface implementation for CalicoNodeStatus
 func NewCalicoNodeStatusStorage(opts Options) (registry.DryRunnableStorage, factory.DestroyFunc) {
 	c := CreateClientFromConfig()
+	createFn := func(ctx context.Context, c clientv3.Interface, obj resourceObject, opts clientOpts) (resourceObject, error) {
+		oso := opts.(options.SetOptions)
+		res := obj.(*api.CalicoNodeStatus)
+		return c.CalicoNodeStatus().Create(ctx, res, oso)
+	}
+	updateFn := func(ctx context.Context, c clientv3.Interface, obj resourceObject, opts clientOpts) (resourceObject, error) {
+		oso := opts.(options.SetOptions)
+		res := obj.(*api.CalicoNodeStatus)
+		return c.CalicoNodeStatus().Update(ctx, res, oso)
+	}
 	getFn := func(ctx context.Context, c clientv3.Interface, ns string, name string, opts clientOpts) (resourceObject, error) {
 		ogo := opts.(options.GetOptions)
 		return c.CalicoNodeStatus().Get(ctx, name, ogo)
@@ -44,6 +54,8 @@ func NewCalicoNodeStatusStorage(opts Options) (registry.DryRunnableStorage, fact
 		libCalicoType:     reflect.TypeOf(api.CalicoNodeStatus{}),
 		libCalicoListType: reflect.TypeOf(api.CalicoNodeStatusList{}),
 		isNamespaced:      false,
+		create:            createFn,
+		update:            updateFn,
 		get:               getFn,
 		list:              listFn,
 		watch:             watchFn,

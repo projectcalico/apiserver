@@ -3,19 +3,13 @@
 package caliconodestatus
 
 import (
-	"context"
-
-	"k8s.io/apimachinery/pkg/api/errors"
+	calico "github.com/projectcalico/api/pkg/apis/projectcalico/v3"
+	"github.com/projectcalico/apiserver/pkg/registry/projectcalico/server"
 	"k8s.io/apimachinery/pkg/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	genericregistry "k8s.io/apiserver/pkg/registry/generic/registry"
-	"k8s.io/apiserver/pkg/registry/rest"
-
-	calico "github.com/projectcalico/api/pkg/apis/projectcalico/v3"
-	"github.com/projectcalico/apiserver/pkg/registry/projectcalico/server"
 )
 
 type REST struct {
@@ -29,21 +23,6 @@ func (r *REST) ShortNames() []string {
 
 func (r *REST) Categories() []string {
 	return []string{""}
-}
-
-// Not supported.
-func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, options *metav1.CreateOptions) (runtime.Object, error) {
-	return nil, errors.NewMethodNotSupported(calico.Resource("caliconodestatuses"), "Create")
-}
-
-// Not supported.
-func (r *REST) Update(ctx context.Context, name string, objInfo rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc, forceAllowCreate bool, options *metav1.UpdateOptions) (runtime.Object, bool, error) {
-	return nil, false, errors.NewMethodNotSupported(calico.Resource("caliconodestatuses"), "Update")
-}
-
-// Not supported.
-func (r *REST) Delete(ctx context.Context, name string, deleteValidation rest.ValidateObjectFunc, options *metav1.DeleteOptions) (runtime.Object, bool, error) {
-	return nil, false, errors.NewMethodNotSupported(calico.Resource("caliconodestatuses"), "Delete")
 }
 
 // EmptyObject returns an empty instance

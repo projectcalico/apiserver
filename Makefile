@@ -85,7 +85,7 @@ Makefile.common.$(MAKE_BRANCH):
 include Makefile.common
 
 # We need CGO to leverage Boring SSL.  However, the cross-compile doesn't support CGO yet.
-ifeq ($(ARCH), $(filter $(ARCH),amd64))
+ifeq ($(ARCH), $(filter $(ARCH),amd64 arm64))
 CGO_ENABLED=1
 else
 CGO_ENABLED=0
@@ -143,8 +143,8 @@ else
 endif
 	@echo Building k8sapiserver...
 	mkdir -p bin
-	$(DOCKER_RUN) -e CGO_ENABLED=$(CGO_ENABLED) $(CALICO_BUILD) \
-		sh -c '$(GIT_CONFIG_SSH) go build -v -i -o $@ -v $(LDFLAGS) $(PACKAGE_NAME)/cmd/apiserver'
+	$(register) $(DOCKER_RUN) -e CGO_ENABLED=$(CGO_ENABLED) $(CALICO_BUILD)-$(ARCH) \
+		sh -c '$(GIT_CONFIG_SSH) go build -v -i -o $@-$(ARCH) -v $(LDFLAGS) $(PACKAGE_NAME)/cmd/apiserver'
 
 $(BINDIR)/filecheck: $(K8SAPISERVER_GO_FILES)
 ifndef RELEASE_BUILD
@@ -153,8 +153,8 @@ else
 	$(eval LDFLAGS:=$(BUILD_LDFLAGS))
 endif
 	@echo Building filecheck...
-	$(DOCKER_RUN) -e CGO_ENABLED=$(CGO_ENABLED) $(CALICO_BUILD) \
-		sh -c '$(GIT_CONFIG_SSH) go build -v -i -o $@ -v $(LDFLAGS) $(PACKAGE_NAME)/cmd/filecheck'
+	$(register) $(DOCKER_RUN) -e CGO_ENABLED=$(CGO_ENABLED) $(CALICO_BUILD)-$(ARCH) \
+		sh -c '$(GIT_CONFIG_SSH) go build -v -i -o $@-$(ARCH) -v $(LDFLAGS) $(PACKAGE_NAME)/cmd/filecheck'
 
 ###############################################################################
 # Building the image
@@ -163,14 +163,14 @@ build: image
 
 CONTAINER_CREATED=.apiserver.created-$(ARCH)
 .PHONY: image $(API_SERVER_IMAGE)
-image: $(API_SERVER_IMAGE)
+image: register $(API_SERVER_IMAGE)
 image-all: $(addprefix sub-image-,$(VALIDARCHES))
 sub-image-%:
 	$(MAKE) image ARCH=$*
 
 $(API_SERVER_IMAGE): $(CONTAINER_CREATED)
-$(CONTAINER_CREATED): docker-image/Dockerfile.$(ARCH) $(BINDIR)/apiserver
-	docker build -t $(API_SERVER_IMAGE):latest-$(ARCH) --build-arg QEMU_IMAGE=$(CALICO_BUILD) --build-arg GIT_VERSION=$(GIT_VERSION) -f docker-image/Dockerfile.$(ARCH) .
+$(CONTAINER_CREATED): docker-image/Dockerfile.$(ARCH) calico/apiserver
+	docker build --pull -t $(API_SERVER_IMAGE):latest-$(ARCH) --build-arg QEMU_IMAGE=$(CALICO_BUILD) --build-arg GIT_VERSION=$(GIT_VERSION) -f docker-image/Dockerfile.$(ARCH) .
 ifeq ($(ARCH),amd64)
 	docker tag $(API_SERVER_IMAGE):latest-$(ARCH) $(API_SERVER_IMAGE):latest
 endif
@@ -181,9 +181,9 @@ endif
 calico/apiserver: $(BINDIR)/apiserver $(BINDIR)/filecheck
 	rm -rf docker-image/bin
 	mkdir -p docker-image/bin
-	cp $(BINDIR)/apiserver docker-image/bin/
-	cp $(BINDIR)/filecheck docker-image/bin/
-	docker build --pull -t calico/apiserver --file ./docker-image/Dockerfile.$(ARCH) docker-image
+	cp $(BINDIR)/apiserver-$(ARCH) docker-image/bin/
+	cp $(BINDIR)/filecheck-$(ARCH) docker-image/bin/
+	docker build --pull --no-cache $(TARGET_PLATFORM) -t calico/apiserver:latest-$(ARCH) --build-arg QEMU_IMAGE=$(CALICO_BUILD) --file ./docker-image/Dockerfile.$(ARCH) docker-image
 
 .PHONY: lint-cache-dir
 lint-cache-dir:
@@ -191,7 +191,7 @@ lint-cache-dir:
 
 check-boring-ssl: $(BINDIR)/apiserver
 	$(DOCKER_RUN) -e CGO_ENABLED=$(CGO_ENABLED) $(CALICO_BUILD) \
-		go tool nm $(BINDIR)/apiserver > $(BINDIR)/tags.txt && grep '_Cfunc__goboringcrypto_' $(BINDIR)/tags.txt 1> /dev/null
+		go tool nm $(BINDIR)/apiserver-$(ARCH) > $(BINDIR)/tags.txt && grep '_Cfunc__goboringcrypto_' $(BINDIR)/tags.txt 1> /dev/null
 	-rm -f $(BINDIR)/tags.txt
 
 .PHONY: ut 

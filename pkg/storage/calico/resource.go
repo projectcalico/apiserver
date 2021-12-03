@@ -361,6 +361,7 @@ func decode(
 func (rs *resourceStore) GuaranteedUpdate(
 	ctx context.Context, key string, out runtime.Object, ignoreNotFound bool,
 	precondtions *storage.Preconditions, userUpdate storage.UpdateFunc, cachedExistingObject runtime.Object) error {
+	klog.Infof("GuaranteedUpdate called with key: %v on resource %v\n", key, rs.resourceName)
 	// If a cachedExistingObject was passed, use that as the initial object, otherwise use Get() to retrieve it
 	var initObj runtime.Object
 	if cachedExistingObject != nil {
@@ -397,6 +398,14 @@ func (rs *resourceStore) GuaranteedUpdate(
 			return err
 		}
 
+		// If we reach here after calling userUpdate function (no error returned)
+		// and curState.rev is 0 (object not found), this implies either the resource's
+		// UpdateStrategy.AllowCreateOnUpdate() is true or forceAllowCreate is true (server-side apply).
+		// https://github.com/kubernetes/kubernetes/blob/v1.22.1/staging/src/k8s.io/apiserver/pkg/registry/generic/registry/store.go#L519
+		shouldCreateOnUpdate := func() bool {
+			return curState.rev == 0
+		}
+
 		updatedData, err := runtime.Encode(rs.codec, updatedObj)
 		if err != nil {
 			klog.Errorf("encoding candidate obj (%s)", err)
@@ -419,10 +428,23 @@ func (rs *resourceStore) GuaranteedUpdate(
 		}
 		revInt, _ := strconv.Atoi(accessor.GetResourceVersion())
 		updatedRes := updatedObj.(resourceObject)
-		if updatedRes.GetObjectMeta().GetResourceVersion() == "" || revInt < int(curState.rev) {
-			updatedRes.(resourceObject).GetObjectMeta().SetResourceVersion(strconv.FormatInt(curState.rev, 10))
+		if !shouldCreateOnUpdate() {
+			if updatedRes.GetObjectMeta().GetResourceVersion() == "" || revInt < int(curState.rev) {
+				updatedRes.(resourceObject).GetObjectMeta().SetResourceVersion(strconv.FormatInt(curState.rev, 10))
+			}
 		}
 		libcalicoObj := rs.converter.convertToLibcalico(updatedRes)
+
+		if shouldCreateOnUpdate() {
+			klog.Infof("Create on Update with key: %v on resource %v\n", key, rs.resourceName)
+			createdLibcalicoObj, err := rs.create(ctx, rs.client, libcalicoObj, options.SetOptions{})
+			if err != nil {
+				klog.Errorf("creating new object (%s) on PATCH", err)
+				return err
+			}
+			rs.converter.convertToAAPI(createdLibcalicoObj, out)
+			return nil
+		}
 
 		var opts options.SetOptions
 		if ttl != nil {

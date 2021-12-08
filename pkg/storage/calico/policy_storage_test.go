@@ -410,6 +410,9 @@ func TestNetworkPolicyGuaranteedUpdate(t *testing.T) {
 				// Set correct resource name, don't update "non-existing" to "foo"
 				if strings.Contains(tt.key, "non-existing") {
 					policy.Name = "non-existing"
+					// Clean resource version for non-existing object
+					policy.GetObjectMeta().SetResourceVersion("")
+
 				}
 				if !tt.expectNoUpdate {
 					policy.Spec.Selector = selector

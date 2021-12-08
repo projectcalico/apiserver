@@ -361,7 +361,7 @@ func decode(
 func (rs *resourceStore) GuaranteedUpdate(
 	ctx context.Context, key string, out runtime.Object, ignoreNotFound bool,
 	precondtions *storage.Preconditions, userUpdate storage.UpdateFunc, cachedExistingObject runtime.Object) error {
-	klog.Infof("GuaranteedUpdate called with key: %v on resource %v\n", key, rs.resourceName)
+	klog.V(6).Infof("GuaranteedUpdate called with key: %v on resource %v\n", key, rs.resourceName)
 	// If a cachedExistingObject was passed, use that as the initial object, otherwise use Get() to retrieve it
 	var initObj runtime.Object
 	if cachedExistingObject != nil {
@@ -382,7 +382,7 @@ func (rs *resourceStore) GuaranteedUpdate(
 	}
 
 	shouldCreateOnUpdate := func() bool {
-		// return ture if initObj has zero revision (object not found) and ignoreNotFound is true.
+		// return true if initObj has zero revision (object not found) and ignoreNotFound is true.
 		return (curState.rev == 0) && ignoreNotFound
 	}
 
@@ -425,10 +425,7 @@ func (rs *resourceStore) GuaranteedUpdate(
 		}
 		revInt, _ := strconv.Atoi(accessor.GetResourceVersion())
 		updatedRes := updatedObj.(resourceObject)
-		if shouldCreateOnUpdate() {
-			// As a precaution, cleanup revision in case it is set by userUpdate function.
-			updatedRes.(resourceObject).GetObjectMeta().SetResourceVersion("")
-		} else {
+		if !shouldCreateOnUpdate() {
 			if updatedRes.GetObjectMeta().GetResourceVersion() == "" || revInt < int(curState.rev) {
 				updatedRes.(resourceObject).GetObjectMeta().SetResourceVersion(strconv.FormatInt(curState.rev, 10))
 			}
@@ -440,7 +437,7 @@ func (rs *resourceStore) GuaranteedUpdate(
 			opts = options.SetOptions{TTL: time.Duration(*ttl) * time.Second}
 		}
 		if shouldCreateOnUpdate() {
-			klog.Infof("Create on Update with key: %v on resource %v\n", key, rs.resourceName)
+			klog.V(6).Infof("Create on Update with key: %v on resource %v\n", key, rs.resourceName)
 			createdLibcalicoObj, err := rs.create(ctx, rs.client, libcalicoObj, opts)
 			if err != nil {
 				klog.Errorf("creating new object (%s) on PATCH", err)

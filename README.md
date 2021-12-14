@@ -1,34 +1,6 @@
-[![Slack Status](https://slack.projectcalico.org/badge.svg)](https://slack.projectcalico.org)
+## Source code moved
 
-# Calico API server
+The Calico source code for this repository has been moved to https://github.com/projectcalico/calico/apiserver as part of ongoing efforts to improve
+the developer experience. 
 
-<blockquote>
-Note that the documentation in this repo is targeted at Calico contributors.
-<h1>Documentation for Calico users is here:<br><a href="http://docs.projectcalico.org">http://docs.projectcalico.org</a></h1>
-</blockquote>
-
-This repository contains the Project Calico API server for Kubernetes.
-
-## Building the plugins and running tests
-
-To build the code into a docker image:
-
-```
-make image
-```
-
-To run the tests:
-
-```
-make test
-```
-
-To update generated code:
-
-```
-make gen-files
-```
-
-## License
-
-Calico binaries are licensed under the [Apache v2.0 license](LICENSE), with the exception of some [GPL licensed eBPF programs](https://github.com/projectcalico/felix/tree/master/bpf-gpl).
+Please note that this repository is no longer in use, and future development on the Calico apiserver will occur in the new location.

@@ -1,5 +1,5 @@
 PACKAGE_NAME    ?= github.com/projectcalico/apiserver
-GO_BUILD_VER    ?= v0.54
+GO_BUILD_VER    ?= v0.65.1
 GOMOD_VENDOR    := false
 GIT_USE_SSH      = true
 LOCAL_CHECKS     = lint-cache-dir goimports check-copyright
@@ -83,6 +83,9 @@ Makefile.common.$(MAKE_BRANCH):
 	curl --fail $(MAKE_REPO)/Makefile.common -o "$@"
 
 include Makefile.common
+
+# Override K8S_VERSION to last available hyperkube.
+K8S_VERSION = v1.18.6
 
 ###############################################################################
 # Managing the upstream library pins
